@@ -1,0 +1,505 @@
+---
+title: "unifir: A Unifying API for Interacting with Unity from R"
+author: 
+  - "Mike Mahoney"
+date: '`r Sys.Date()`'
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: xaringan-themer.css
+    seal: false
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{css echo=FALSE, include = FALSE}
+.hide-count .remark-slide-number {
+  display: none;
+}
+```
+
+```{r setup, include=FALSE}
+library(kableExtra)
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(
+  fig.width=9, fig.height=3.5, fig.retina=3,
+  out.width = "100%",
+  cache = FALSE,
+  echo = FALSE,
+  message = FALSE, 
+  warning = FALSE,
+  fig.show = TRUE,
+  hiline = TRUE
+)
+xaringanExtra::use_webcam()
+xaringanExtra::use_extra_styles(
+  hover_code_line = TRUE,         #<<
+  mute_unhighlighted_code = TRUE  #<<
+)
+```
+
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+style_duo_accent(
+  primary_color = "#26375b",
+  secondary_color = "#27686d",
+  inverse_header_color = "#FFFFFF"
+)
+```
+
+class: hide-count
+
+background-image: url("splash.png")  
+background-size: contain
+
+---
+
+<style type="text/css">
+.remark-slide-content {
+    font-family: Lato
+}
+</style>
+
+# About Me
+
+.pull-left[
+
+- Mike Mahoney
+
+- Ph.D. Student at SUNY-ESF
+
+- Focusing on environmental visualization as a way to think about large-scale systems
+
+- Background in machine learning, remote sensing, and forest ecology
+
+- https://mm218.dev
+
+]
+
+.pull-right[
+
+```{r, echo=FALSE}
+knitr::include_graphics("https://github.com/mikemahoney218.png")
+```
+
+]
+
+---
+
+background-image: url("terrainr.png")  
+background-size: contain
+
+---
+
+```{r, eval = FALSE, echo = TRUE}
+library(terrainr)
+library(sf)
+library(magrittr)
+
+zion <- tmaptools::geocode_OSM("Zion National Park")$coords
+
+zion <- data.frame(x = zion[["x"]], y = zion[["y"]]) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326) %>% 
+  set_bbox_side_length(8000)
+
+merged_tiles <- zion %>%
+  get_tiles(services = c("elevation", "ortho")) %>% 
+  lapply(merge_rasters)
+
+make_manifest(merged_tiles$elevation, 
+              merged_tiles$ortho)
+```
+
+
+---
+
+background-image: url("final_render.jpg")  
+background-size: contain
+
+---
+
+background-image: url("terrain_walk.gif")  
+background-size: cover
+
+---
+
+# Challenges
+
+### 1. Only does terrain
+
+### 2. User needs to interact with Unity directly
+
+### 3. Hard to build on
+
+
+---
+class: center middle
+
+# Enter unifir
+
+![unifir logo](https://github.com/ropensci/unifir/raw/main/man/figures/logo.png)
+
+---
+
+# Unifir is...
+
+### • Interface to the Unity scripting API from R
+
+### • Hides the hard parts
+
+### • Lightweight, easily-extensible
+
+---
+
+# 1. R Interface to Unity's API
+
+### A quick example
+
+```{r echo=TRUE}
+library(terra)
+library(terrainr)
+
+terrain_size <- 4097
+r <- terra::rast(
+  matrix(rnorm(terrain_size^2, 0, 0.2), terrain_size),
+  extent = terra::ext(0, terrain_size, 0, terrain_size)
+)
+raster_file <- tempfile(fileext = ".tiff")
+terra::writeRaster(r, raster_file)
+raster_file <- terrainr::transform_elevation(
+  raster_file, 
+  side_length = terrain_size,
+  output_prefix = tempfile()
+)
+```
+
+---
+
+# 1. R Interface to Unity's API
+
+### A quick example
+
+```{r echo=TRUE}
+num_trees <- 100
+pos <- data.frame(
+  x = runif(num_trees, -40, 40),
+  z = runif(num_trees, -40, 40)
+)
+```
+
+---
+
+```{r eval=FALSE, echo=TRUE}
+library(unifir)
+tree_script <- make_script(
+  project = file.path(tempdir(), "unifir", "random_trees")
+)
+```
+
+---
+
+```{r eval=FALSE, echo=TRUE}
+library(unifir)
+tree_script <- make_script(
+  project = file.path(tempdir(), "unifir", "random_trees")
+)
+
+tree_script <- create_terrain(
+  tree_script,
+  heightmap_path = raster_file,
+  x_pos = -2050,
+  z_pos = -2050,
+  width = terrain_size, 
+  length = terrain_size, 
+  height = as.numeric(terra::global(r, max)), 
+  heightmap_resolution = terrain_size 
+)
+```
+
+---
+
+```{r eval=FALSE, echo=TRUE}
+library(unifir)
+tree_script <- make_script(
+  project = file.path(tempdir(), "unifir", "random_trees")
+)
+
+tree_script <- create_terrain(
+  tree_script,
+  heightmap_path = raster_file,
+  x_pos = -2050,
+  z_pos = -2050,
+  width = terrain_size, 
+  length = terrain_size, 
+  height = as.numeric(terra::global(r, max)), 
+  heightmap_resolution = terrain_size 
+)
+
+tree_script <- add_default_tree(
+  tree_script,
+  "tree_1",
+  x_position = pos$x,
+  z_position = pos$z,
+  y_position = 0
+)
+
+tree_script <- add_light(tree_script)
+```
+
+---
+
+```{r eval=FALSE, echo=TRUE}
+tree_script <- tree_script |> 
+  save_scene(scene_name = "trees") |>
+  set_active_scene(scene_name = "trees")
+
+action(tree_script)
+```
+
+
+---
+
+background-image: url("https://docs.ropensci.org/unifir/articles/random_trees.png")  
+background-size: cover
+
+---
+
+```{r eval=FALSE, echo=TRUE}
+library(unifir)
+
+make_script(
+  project = file.path(tempdir(), "unifir", "random_trees")
+) |> 
+  create_terrain(
+    heightmap_path = raster_file,
+    x_pos = -2050,
+    z_pos = -2050,
+    width = terrain_size, 
+    length = terrain_size, 
+    height = as.numeric(terra::global(r, max)), 
+    heightmap_resolution = terrain_size 
+  ) |> 
+  add_default_tree(
+    "tree_1",
+    x_position = pos$x,
+    z_position = pos$z,
+    y_position = 0
+  ) |> 
+  add_light() |> 
+  save_scene(scene_name = "trees") |>
+  set_active_scene(scene_name = "trees") |> 
+  action()
+```
+
+---
+
+# 2. Hides the Hard Parts
+
+```{r}
+knitr::include_graphics("supports.png")
+```
+
+---
+
+# 2. Hides the Hard Parts
+
+```{r}
+library(unifir)
+
+tree_script <- make_script(
+  project = file.path(tempdir(), "unifir", "random_trees")
+) |> create_terrain(
+  heightmap_path = raster_file,
+  x_pos = -2050,
+  z_pos = -2050,
+  width = terrain_size, 
+  length = terrain_size, 
+  height = as.numeric(terra::global(r, max)), 
+  heightmap_resolution = terrain_size 
+) |> 
+  add_default_tree(
+    "tree_1",
+    x_position = pos$x,
+    z_position = pos$z,
+    y_position = 0
+  ) |> 
+  add_light() |> 
+  save_scene(scene_name = "trees") |>
+  set_active_scene(scene_name = "trees")
+```
+
+```{r echo=TRUE}
+ls(tree_script)
+```
+
+---
+
+```{r echo=TRUE}
+ls(tree_script)
+
+str(tree_script$props)
+```
+
+---
+
+```{r echo=TRUE}
+tree_script$props[[4]]
+```
+
+---
+
+```{r echo=TRUE}
+readLines(tree_script$props[[4]]$prop_file)
+```
+
+---
+
+```{r eval=FALSE, echo=TRUE}
+library(unifir)
+
+make_script(
+  project = file.path(tempdir(), "unifir", "random_trees")
+) |> 
+  create_terrain(
+    heightmap_path = raster_file,
+    x_pos = -2050,
+    z_pos = -2050,
+    width = terrain_size, 
+    length = terrain_size, 
+    height = as.numeric(terra::global(r, max)), 
+    heightmap_resolution = terrain_size 
+  ) |> 
+  add_default_tree(
+    "tree_1",
+    x_position = pos$x,
+    z_position = pos$z,
+    y_position = 0
+  ) |> 
+  add_light() |> 
+  save_scene(scene_name = "trees") |>
+  set_active_scene(scene_name = "trees") |> 
+  action()
+```
+
+---
+
+```{r echo=TRUE}
+head(tree_script$beats, 4)
+```
+
+---
+
+# 3. Easily extensible
+
+```{r, eval = FALSE, echo = TRUE}
+library(terrainr)
+library(sf)
+library(magrittr)
+
+zion <- tmaptools::geocode_OSM("Zion National Park")$coords
+
+zion <- data.frame(x = zion[["x"]], y = zion[["y"]]) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326) %>% 
+  set_bbox_side_length(8000)
+
+merged_tiles <- zion %>%
+  get_tiles(services = c("elevation", "ortho")) %>% 
+  lapply(merge_rasters)
+
+make_manifest(merged_tiles$elevation, 
+              merged_tiles$ortho)
+```
+
+---
+
+# 3. Easily extensible
+
+```{r, eval = FALSE, echo = TRUE}
+library(terrainr)
+library(sf)
+library(magrittr)
+
+zion <- tmaptools::geocode_OSM("Zion National Park")$coords
+
+zion <- data.frame(x = zion[["x"]], y = zion[["y"]]) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326) %>% 
+  set_bbox_side_length(8000)
+
+merged_tiles <- zion %>%
+  get_tiles(services = c("elevation", "ortho")) %>% 
+  lapply(merge_rasters)
+
+# make_manifest(merged_tiles$elevation, 
+#               merged_tiles$ortho)
+
+make_unity(project = "zion",  
+           heightmap = merged_tiles$elevation,
+           overlay = merged_tiles$ortho)
+```
+
+---
+
+```{r eval = FALSE, echo = TRUE}
+make_unity(project = "zion",  
+           heightmap = merged_tiles$elevation,
+           overlay = merged_tiles$ortho,
+           action = FALSE) |> 
+  add_default_player(
+    x_position = 2170,
+    z_position = 4970,
+    y_position = 2170
+  ) |> 
+  save_scene() |> 
+  set_active_scene() |> 
+  action()
+```
+
+---
+
+background-image: url("terrain_walk.gif")  
+background-size: cover
+
+---
+
+# 3. Easily extensible
+
+```{r echo=TRUE}
+unifir_prop
+```
+
+---
+
+# The Future
+
+### 1. Wrap more of the API
+
+### 2. Procedural landscape generation
+
+### 3. Use it!
+
+
+---
+
+# Thank you!
+
+This work was financially supported by the State University of New York via the ESF Pathways to Net Zero Carbon initiative.
+
+#### More unifir:
+
+`r icons::fontawesome("github")` [ropensci/unifir](https://github.com/ropensci/unifir)
+
+`r icons::fontawesome("book")` [https://docs.ropensci.org/unifir/](https://docs.ropensci.org/unifir/)
+
+#### Find me online:
+
+`r icons::fontawesome("github")` [@mikemahoney218](https://github.com/mikemahoney218/)
+
+`r icons::fontawesome("twitter")` [@mikemahoney218](https://twitter.com/mikemahoney218/)
+
+`r icons::fontawesome("globe")` [mm218.dev](https://mm218.dev)
+
+<br />
+
+Slides available at https://mm218.dev/user2022
