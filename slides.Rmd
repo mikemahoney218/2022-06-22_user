@@ -21,13 +21,16 @@ output:
 ```
 
 ```{r setup, include=FALSE}
+# Why do this
+# More Unity
+# More R6
 library(kableExtra)
 options(htmltools.dir.version = FALSE)
 knitr::opts_chunk$set(
   fig.width=9, fig.height=3.5, fig.retina=3,
   out.width = "100%",
   cache = FALSE,
-  echo = FALSE,
+  echo = TRUE,
   message = FALSE, 
   warning = FALSE,
   fig.show = TRUE,
@@ -40,7 +43,7 @@ xaringanExtra::use_extra_styles(
 )
 ```
 
-```{r xaringan-themer, include=FALSE, warning=FALSE}
+```{r xaringan-themer, include=FALSE, warning=FALSE, echo = FALSE}
 library(xaringanthemer)
 style_duo_accent(
   primary_color = "#26375b",
@@ -88,6 +91,20 @@ knitr::include_graphics("https://github.com/mikemahoney218.png")
 
 ---
 
+background-image: url("mort.png")  
+background-size: contain
+
+---
+
+background-image: url("further_arrow.jpg")  
+background-size: contain
+---
+
+background-image: url("unity.png")  
+background-size: contain
+
+---
+
 background-image: url("terrainr.png")  
 background-size: contain
 
@@ -124,17 +141,6 @@ background-image: url("terrain_walk.gif")
 background-size: cover
 
 ---
-
-# Challenges
-
-### 1. Only does terrain
-
-### 2. User needs to interact with Unity directly
-
-### 3. Hard to build on
-
-
----
 class: center middle
 
 # Enter unifir
@@ -143,121 +149,60 @@ class: center middle
 
 ---
 
-# Unifir is...
+```{r}
+library(unifir)
 
-### • Interface to the Unity scripting API from R
+example_script <- 
+  make_script(project = file.path(tempdir(), "unifir")) |> 
+  add_light(light_type = "Point")
 
-### • Hides the hard parts
-
-### • Lightweight, easily-extensible
-
----
-
-# 1. R Interface to Unity's API
-
-### A quick example
-
-```{r echo=TRUE}
-library(terra)
-library(terrainr)
-
-terrain_size <- 4097
-r <- terra::rast(
-  matrix(rnorm(terrain_size^2, 0, 0.2), terrain_size),
-  extent = terra::ext(0, terrain_size, 0, terrain_size)
-)
-raster_file <- tempfile(fileext = ".tiff")
-terra::writeRaster(r, raster_file)
-raster_file <- terrainr::transform_elevation(
-  raster_file, 
-  side_length = terrain_size,
-  output_prefix = tempfile()
-)
+example_script$props[[1]]
 ```
 
 ---
 
-# 1. R Interface to Unity's API
+```{r}
+example_script
 
-### A quick example
-
-```{r echo=TRUE}
-num_trees <- 100
-pos <- data.frame(
-  x = runif(num_trees, -40, 40),
-  z = runif(num_trees, -40, 40)
-)
+ls(example_script)
 ```
+
+--
+
+
+```{r eval = FALSE}
+action(example_script)
+```
+
 
 ---
 
 ```{r eval=FALSE, echo=TRUE}
 library(unifir)
-tree_script <- make_script(
+
+make_script(
   project = file.path(tempdir(), "unifir", "random_trees")
-)
-```
-
----
-
-```{r eval=FALSE, echo=TRUE}
-library(unifir)
-tree_script <- make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-)
-
-tree_script <- create_terrain(
-  tree_script,
-  heightmap_path = raster_file,
-  x_pos = -2050,
-  z_pos = -2050,
-  width = terrain_size, 
-  length = terrain_size, 
-  height = as.numeric(terra::global(r, max)), 
-  heightmap_resolution = terrain_size 
-)
-```
-
----
-
-```{r eval=FALSE, echo=TRUE}
-library(unifir)
-tree_script <- make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-)
-
-tree_script <- create_terrain(
-  tree_script,
-  heightmap_path = raster_file,
-  x_pos = -2050,
-  z_pos = -2050,
-  width = terrain_size, 
-  length = terrain_size, 
-  height = as.numeric(terra::global(r, max)), 
-  heightmap_resolution = terrain_size 
-)
-
-tree_script <- add_default_tree(
-  tree_script,
-  "tree_1",
-  x_position = pos$x,
-  z_position = pos$z,
-  y_position = 0
-)
-
-tree_script <- add_light(tree_script)
-```
-
----
-
-```{r eval=FALSE, echo=TRUE}
-tree_script <- tree_script |> 
+) |> 
+  create_terrain(
+    heightmap_path = "elevation_raster.raw",
+    x_pos = -2050,
+    z_pos = -2050,
+    width = 4097, 
+    length = 4097, 
+    height = 2, 
+    heightmap_resolution = 4097 
+  ) |> 
+  add_default_tree(
+    "tree_1",
+    x_position = runif(100, -40, 40),
+    z_position = runif(100, -40, 40),
+    y_position = 0
+  ) |> 
+  add_light() |> 
   save_scene(scene_name = "trees") |>
-  set_active_scene(scene_name = "trees")
-
-action(tree_script)
+  set_active_scene(scene_name = "trees") |> 
+  action()
 ```
-
 
 ---
 
@@ -265,133 +210,6 @@ background-image: url("https://docs.ropensci.org/unifir/articles/random_trees.pn
 background-size: cover
 
 ---
-
-```{r eval=FALSE, echo=TRUE}
-library(unifir)
-
-make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-) |> 
-  create_terrain(
-    heightmap_path = raster_file,
-    x_pos = -2050,
-    z_pos = -2050,
-    width = terrain_size, 
-    length = terrain_size, 
-    height = as.numeric(terra::global(r, max)), 
-    heightmap_resolution = terrain_size 
-  ) |> 
-  add_default_tree(
-    "tree_1",
-    x_position = pos$x,
-    z_position = pos$z,
-    y_position = 0
-  ) |> 
-  add_light() |> 
-  save_scene(scene_name = "trees") |>
-  set_active_scene(scene_name = "trees") |> 
-  action()
-```
-
----
-
-# 2. Hides the Hard Parts
-
-```{r}
-knitr::include_graphics("supports.png")
-```
-
----
-
-# 2. Hides the Hard Parts
-
-```{r}
-library(unifir)
-
-tree_script <- make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-) |> create_terrain(
-  heightmap_path = raster_file,
-  x_pos = -2050,
-  z_pos = -2050,
-  width = terrain_size, 
-  length = terrain_size, 
-  height = as.numeric(terra::global(r, max)), 
-  heightmap_resolution = terrain_size 
-) |> 
-  add_default_tree(
-    "tree_1",
-    x_position = pos$x,
-    z_position = pos$z,
-    y_position = 0
-  ) |> 
-  add_light() |> 
-  save_scene(scene_name = "trees") |>
-  set_active_scene(scene_name = "trees")
-```
-
-```{r echo=TRUE}
-ls(tree_script)
-```
-
----
-
-```{r echo=TRUE}
-ls(tree_script)
-
-str(tree_script$props)
-```
-
----
-
-```{r echo=TRUE}
-tree_script$props[[4]]
-```
-
----
-
-```{r echo=TRUE}
-readLines(tree_script$props[[4]]$prop_file)
-```
-
----
-
-```{r eval=FALSE, echo=TRUE}
-library(unifir)
-
-make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-) |> 
-  create_terrain(
-    heightmap_path = raster_file,
-    x_pos = -2050,
-    z_pos = -2050,
-    width = terrain_size, 
-    length = terrain_size, 
-    height = as.numeric(terra::global(r, max)), 
-    heightmap_resolution = terrain_size 
-  ) |> 
-  add_default_tree(
-    "tree_1",
-    x_position = pos$x,
-    z_position = pos$z,
-    y_position = 0
-  ) |> 
-  add_light() |> 
-  save_scene(scene_name = "trees") |>
-  set_active_scene(scene_name = "trees") |> 
-  action()
-```
-
----
-
-```{r echo=TRUE}
-head(tree_script$beats, 4)
-```
-
----
-
-# 3. Easily extensible
 
 ```{r, eval = FALSE, echo = TRUE}
 library(terrainr)
@@ -413,8 +231,6 @@ make_manifest(merged_tiles$elevation,
 ```
 
 ---
-
-# 3. Easily extensible
 
 ```{r, eval = FALSE, echo = TRUE}
 library(terrainr)
@@ -441,6 +257,11 @@ make_unity(project = "zion",
 
 ---
 
+background-image: url("final_render.jpg")  
+background-size: contain
+
+---
+
 ```{r eval = FALSE, echo = TRUE}
 make_unity(project = "zion",  
            heightmap = merged_tiles$elevation,
@@ -460,14 +281,6 @@ make_unity(project = "zion",
 
 background-image: url("terrain_walk.gif")  
 background-size: cover
-
----
-
-# 3. Easily extensible
-
-```{r echo=TRUE}
-unifir_prop
-```
 
 ---
 

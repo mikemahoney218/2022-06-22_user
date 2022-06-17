@@ -4,7 +4,7 @@
     <title>unifir: A Unifying API for Interacting with Unity from R</title>
     <meta charset="utf-8" />
     <meta name="author" content="Mike Mahoney" />
-    <meta name="date" content="2022-05-06" />
+    <meta name="date" content="2022-06-17" />
     <script src="libs/header-attrs/header-attrs.js"></script>
     <script src="libs/xaringanExtra-webcam/webcam.js"></script>
     <script id="xaringanExtra-webcam-options" type="application/json">{"width":"200","height":"200","margin":"1em"}</script>
@@ -58,6 +58,20 @@ background-size: contain
 
 ---
 
+background-image: url("mort.png")  
+background-size: contain
+
+---
+
+background-image: url("further_arrow.jpg")  
+background-size: contain
+---
+
+background-image: url("unity.png")  
+background-size: contain
+
+---
+
 background-image: url("terrainr.png")  
 background-size: contain
 
@@ -95,17 +109,6 @@ background-image: url("terrain_walk.gif")
 background-size: cover
 
 ---
-
-# Challenges
-
-### 1. Only does terrain
-
-### 2. User needs to interact with Unity directly
-
-### 3. Hard to build on
-
-
----
 class: center middle
 
 # Enter unifir
@@ -114,304 +117,15 @@ class: center middle
 
 ---
 
-# Unifir is...
-
-### • Interface to the Unity scripting API from R
-
-### • Hides the hard parts
-
-### • Lightweight, easily-extensible
-
----
-
-# 1. R Interface to Unity's API
-
-### A quick example
-
-
-```r
-library(terra)
-library(terrainr)
-
-terrain_size &lt;- 4097
-r &lt;- terra::rast(
-  matrix(rnorm(terrain_size^2, 0, 0.2), terrain_size),
-  extent = terra::ext(0, terrain_size, 0, terrain_size)
-)
-raster_file &lt;- tempfile(fileext = ".tiff")
-terra::writeRaster(r, raster_file)
-raster_file &lt;- terrainr::transform_elevation(
-  raster_file, 
-  side_length = terrain_size,
-  output_prefix = tempfile()
-)
-```
-
----
-
-# 1. R Interface to Unity's API
-
-### A quick example
-
-
-```r
-num_trees &lt;- 100
-pos &lt;- data.frame(
-  x = runif(num_trees, -40, 40),
-  z = runif(num_trees, -40, 40)
-)
-```
-
----
-
-
-```r
-library(unifir)
-tree_script &lt;- make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-)
-```
-
----
-
-
-```r
-library(unifir)
-tree_script &lt;- make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-)
-
-tree_script &lt;- create_terrain(
-  tree_script,
-  heightmap_path = raster_file,
-  x_pos = -2050,
-  z_pos = -2050,
-  width = terrain_size, 
-  length = terrain_size, 
-  height = as.numeric(terra::global(r, max)), 
-  heightmap_resolution = terrain_size 
-)
-```
-
----
-
-
-```r
-library(unifir)
-tree_script &lt;- make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-)
-
-tree_script &lt;- create_terrain(
-  tree_script,
-  heightmap_path = raster_file,
-  x_pos = -2050,
-  z_pos = -2050,
-  width = terrain_size, 
-  length = terrain_size, 
-  height = as.numeric(terra::global(r, max)), 
-  heightmap_resolution = terrain_size 
-)
-
-tree_script &lt;- add_default_tree(
-  tree_script,
-  "tree_1",
-  x_position = pos$x,
-  z_position = pos$z,
-  y_position = 0
-)
-
-tree_script &lt;- add_light(tree_script)
-```
-
----
-
-
-```r
-tree_script &lt;- tree_script |&gt; 
-  save_scene(scene_name = "trees") |&gt;
-  set_active_scene(scene_name = "trees")
-
-action(tree_script)
-```
-
-
----
-
-background-image: url("https://docs.ropensci.org/unifir/articles/random_trees.png")  
-background-size: cover
-
----
-
 
 ```r
 library(unifir)
 
-make_script(
-  project = file.path(tempdir(), "unifir", "random_trees")
-) |&gt; 
-  create_terrain(
-    heightmap_path = raster_file,
-    x_pos = -2050,
-    z_pos = -2050,
-    width = terrain_size, 
-    length = terrain_size, 
-    height = as.numeric(terra::global(r, max)), 
-    heightmap_resolution = terrain_size 
-  ) |&gt; 
-  add_default_tree(
-    "tree_1",
-    x_position = pos$x,
-    z_position = pos$z,
-    y_position = 0
-  ) |&gt; 
-  add_light() |&gt; 
-  save_scene(scene_name = "trees") |&gt;
-  set_active_scene(scene_name = "trees") |&gt; 
-  action()
-```
+example_script &lt;- 
+  make_script(project = file.path(tempdir(), "unifir")) |&gt; 
+  add_light(light_type = "Point")
 
----
-
-# 2. Hides the Hard Parts
-
-&lt;img src="supports.png" width="100%" /&gt;
-
----
-
-# 2. Hides the Hard Parts
-
-
-
-
-```r
-ls(tree_script)
-```
-
-```
-##  [1] "beats"              "clone"              "initialize"        
-##  [4] "initialize_project" "project"            "props"             
-##  [7] "scene_exists"       "scene_name"         "script_name"       
-## [10] "unity"              "using"
-```
-
----
-
-
-```r
-ls(tree_script)
-```
-
-```
-##  [1] "beats"              "clone"              "initialize"        
-##  [4] "initialize_project" "project"            "props"             
-##  [7] "scene_exists"       "scene_name"         "script_name"       
-## [10] "unity"              "using"
-```
-
-```r
-str(tree_script$props)
-```
-
-```
-## List of 9
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: LoadPNGAutoAdd
-##     method_type: LoadPNG
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: System System.IO UnityEngine 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: AddTextureAutoAdd
-##     method_type: AddTexture
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: System System.IO UnityEngine 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: ReadRawAutoAdd
-##     method_type: ReadRaw
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: System System.IO 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: FlowerSouthSoundNoon
-##     method_type: CreateTerrain
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: System System.IO UnityEngine 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: /home/mikemahoney218/.local/share/R/unifir/unity_assets- ...
-##     method_type: ImportAsset
-##     parameters: list
-##     prop_file: waiver
-##     using:  
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: SetReadyDealTouch
-##     method_type: InstantiatePrefab
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: System System.IO System.Collections System.Collections.G ... 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: GardenHereCarryPosition
-##     method_type: InstantiatePrefab
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: UnityEngine 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: ThoseDirectTruckabove
-##     method_type: SaveScene
-##     parameters: list
-##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: UnityEngine UnityEditor UnityEditor.SceneManagement 
-##  $ :Classes 'unifir_prop', 'R6' &lt;unifir_prop&gt;
-##   Public:
-##     build: function (script, prop, debug) 
-##     clone: function (deep = FALSE) 
-##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: SelectModernMajorBring
-##     method_type: SetActiveScene
-##     parameters: list
-##     prop_file: waiver
-##     using: UnityEngine UnityEditor UnityEditor.SceneManagement
-```
-
----
-
-
-```r
-tree_script$props[[4]]
+example_script$props[[1]]
 ```
 
 ```
@@ -420,48 +134,45 @@ tree_script$props[[4]]
 ##     build: function (script, prop, debug) 
 ##     clone: function (deep = FALSE) 
 ##     initialize: function (prop_file, method_name, method_type, parameters, build, 
-##     method_name: FlowerSouthSoundNoon
-##     method_type: CreateTerrain
+##     method_name: SoftBringTenPosition
+##     method_type: InstantiatePrefab
 ##     parameters: list
 ##     prop_file: /home/mikemahoney218/R/x86_64-pc-linux-gnu-library/4.2/u ...
-##     using: System System.IO UnityEngine
+##     using: UnityEngine
 ```
 
 ---
 
 
 ```r
-readLines(tree_script$props[[4]]$prop_file)
+example_script
 ```
 
 ```
-##  [1] ""                                                                                      
-##  [2] "    static void %method_name%()"                                                       
-##  [3] "    {"                                                                                 
-##  [4] "        string heightmapPath = \"%heightmap_path%\";"                                  
-##  [5] "        string basePath = \"%base_path%\";"                                            
-##  [6] "        float x_pos = %x_pos%F;"                                                       
-##  [7] "        float z_pos = %z_pos%F;"                                                       
-##  [8] "        float width = %width%F;"                                                       
-##  [9] "        float height = %height%F;"                                                     
-## [10] "        float length = %length%F;"                                                     
-## [11] "        int heightmapResolution = %heightmapResolution%;"                              
-## [12] "        string texturePath = \"%texturePath%\";"                                       
-## [13] ""                                                                                      
-## [14] "        TerrainData terrainData = new TerrainData();"                                  
-## [15] "        terrainData.size = new Vector3(width / 128, height, length / 128);"            
-## [16] "        terrainData.heightmapResolution = heightmapResolution;"                        
-## [17] ""                                                                                      
-## [18] "        GameObject terrain = (GameObject)Terrain.CreateTerrainGameObject(terrainData);"
-## [19] "        terrain.transform.position = new Vector3(x_pos, 0, z_pos);"                    
-## [20] "        float [,] heights = %read_raw_method%(heightmapPath, heightmapResolution);"    
-## [21] "        terrainData.SetHeights(0, 0, heights);"                                        
-## [22] "        if(texturePath != string.Empty){"                                              
-## [23] "            %add_texture_method%(texturePath, terrainData, width, length);"            
-## [24] "        }"                                                                             
-## [25] "        AssetDatabase.CreateAsset(terrainData, \"Assets/\" + basePath + \".asset\");"  
-## [26] "    }"
+## &lt;environment: 0x560662075958&gt;
+## attr(,"class")
+## [1] "unifir_script"
 ```
+
+```r
+ls(example_script)
+```
+
+```
+##  [1] "beats"              "clone"              "initialize"        
+##  [4] "initialize_project" "project"            "props"             
+##  [7] "scene_exists"       "scene_name"         "script_name"       
+## [10] "unity"              "using"
+```
+
+--
+
+
+
+```r
+action(example_script)
+```
+
 
 ---
 
@@ -473,18 +184,18 @@ make_script(
   project = file.path(tempdir(), "unifir", "random_trees")
 ) |&gt; 
   create_terrain(
-    heightmap_path = raster_file,
+    heightmap_path = "elevation_raster.raw",
     x_pos = -2050,
     z_pos = -2050,
-    width = terrain_size, 
-    length = terrain_size, 
-    height = as.numeric(terra::global(r, max)), 
-    heightmap_resolution = terrain_size 
+    width = 4097, 
+    length = 4097, 
+    height = 2, 
+    heightmap_resolution = 4097 
   ) |&gt; 
   add_default_tree(
     "tree_1",
-    x_position = pos$x,
-    z_position = pos$z,
+    x_position = runif(100, -40, 40),
+    z_position = runif(100, -40, 40),
     y_position = 0
   ) |&gt; 
   add_light() |&gt; 
@@ -495,22 +206,10 @@ make_script(
 
 ---
 
-
-```r
-head(tree_script$beats, 4)
-```
-
-```
-##    idx                 name          type  exec
-## NA   1       LoadPNGAutoAdd       LoadPNG FALSE
-## 2    2    AddTextureAutoAdd    AddTexture FALSE
-## 3    3       ReadRawAutoAdd       ReadRaw FALSE
-## 4    4 FlowerSouthSoundNoon CreateTerrain  TRUE
-```
+background-image: url("https://docs.ropensci.org/unifir/articles/random_trees.png")  
+background-size: cover
 
 ---
-
-# 3. Easily extensible
 
 
 ```r
@@ -533,8 +232,6 @@ make_manifest(merged_tiles$elevation,
 ```
 
 ---
-
-# 3. Easily extensible
 
 
 ```r
@@ -562,6 +259,11 @@ make_unity(project = "zion",
 
 ---
 
+background-image: url("final_render.jpg")  
+background-size: contain
+
+---
+
 
 ```r
 make_unity(project = "zion",  
@@ -582,35 +284,6 @@ make_unity(project = "zion",
 
 background-image: url("terrain_walk.gif")  
 background-size: cover
-
----
-
-# 3. Easily extensible
-
-
-```r
-unifir_prop
-```
-
-```
-## function(prop_file,
-##                         method_name,
-##                         method_type,
-##                         parameters,
-##                         build,
-##                         using) {
-##   .unifir_prop$new(
-##     prop_file,
-##     method_name,
-##     method_type,
-##     parameters,
-##     build,
-##     using
-##   )
-## }
-## &lt;bytecode: 0x558bfdd0da50&gt;
-## &lt;environment: namespace:unifir&gt;
-```
 
 ---
 
