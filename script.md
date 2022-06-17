@@ -64,46 +64,46 @@ So then those props are then in turn stored in a "script" object. And a script i
 
 But also, because a script contains a record of all the other props a user has already added, props are able to actually edit themselves and each other based on what's already in the script. And that lets us write really efficient props, by changing prop behavior based on what else the script is supposed to be doing. For instance, to create a 3D model, you need C sharp code that will load the 3D model, save it to the right place in your Unity project, create it as an object in Unity, move it to the right location, resize it, and so on. And if you went through that entire process for each model you want to add, creating things like forests would take a really long time. This ability for props to inspect the rest of the script means we can reuse C sharp code between props, which makes the actual scene creation a lot faster.
 
-# Slide 14 
+# Slide 12.5
 
 And so once a user has created all of their props and is ready to create their scene, they can use the "action" function to actually execute their script. And when you do that, unifir will step through each of the props you've added in order, follow the instructions in them to write C sharp code, and then execute that resulting C sharp inside of Unity itself. And so entirely from R we're able to write these complicated programs that create 3D environments, in Unity, without needing to use the graphical interface at all.
 
-# Slide 15
+# Slide 13
 
 And so just for example's sake, this is what one of these unifir programs can look like. This is a really simple example, which is generating a bumpy terrain surface and placing a bunch of trees at random positions on the surface.
 
-# Slide 16
+# Slide 14
 
 And running that code in R produces a Unity environment automatically, no input from us required.
 
-# Slide 17
+# Slide 15
 
 So that's what unifir provides itself, directly. But it also provides the ability for packages to write their own props, so that they can rely on unifir's approach for interacting with Unity and not need to worry about dealing with the API themselves.
 
 So for instance, here's the terrainr code from the start of this talk. And remember, this code downloads a bunch of spatial data and turns it into something you can bring into Unity yourself, but doesn't handle the interaction with Unity at all.
 
-# Slide 18
+# Slide 16
 
 Well, the new version of terrainr on CRAN now wraps unifir. And so we can replace that make manifest call with make unity,
 
-# Slide 19
+# Slide 17
 
 and that will go ahead and create our terrain surface inside a new Unity project for us. No human interaction required.
 
-# Slide 20
+# Slide 18
 
 And, if we write a little bit of unifir code ourselves, we can actually add a player on top of this terrain.
 
-# Slide 21
+# Slide 19
 
 And so we now have fully interactive 3D landscape visualizations, in Unity, created entirely in R. 
 
 And this is a huge step forward for reproducibility and ease-of-use in our work. Especially with the push towards more and more open science practices, being able to show people a clear expression of the decisions we made when making an environment is huge. 
 
-# Slide 22
+# Slide 20
 
 And so that's unifir! Over the next few months we've got a few more features we'd like to add -- we want to wrap more of the Unity API, and add some features so that it's easier to procedurally generate landscapes directly from R and port those into Unity. But mostly, we're excited to finally have this plumbing for our own work, so we can start making these environments faster and more openly for our future studies!
 
-# Slide 23
+# Slide 21
 
 And that's just about my time! I want to thank the ESF Pathways to Net Zero Carbon initiative for funding this work. You can find me on everything at mikemahoney218, and these slides are on GitHub at mm218.dev/user2022. Thanks again!
